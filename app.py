@@ -278,6 +278,18 @@ textarea{resize:none;line-height:1.8}
 .tarot-card.reversed .tarot-card-symbol{transform:rotate(180deg)}
 .tarot-card.reversed img{transform:rotate(180deg)}
 
+/* シェアボタン */
+.share-section{margin-bottom:40px}
+.share-section .share-label{color:#9b8ec4;font-size:12px;margin-bottom:10px;text-align:center}
+.share-btns{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center}
+.share-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 18px;border-radius:12px;border:none;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;transition:transform .2s,opacity .2s;font-family:'Noto Sans JP',sans-serif}
+.share-btn:hover{transform:scale(1.05);opacity:.95}
+.share-btn-x{background:#000;color:#fff}
+.share-btn-line{background:#06C755;color:#fff}
+.share-btn-ig{background:linear-gradient(135deg,#833AB4,#FD1D1D,#F77737);color:#fff}
+.share-btn-copy{background:rgba(255,255,255,.1);color:#c9b8e8;border:1px solid rgba(184,134,11,.3)}
+.share-btn-native{background:rgba(184,134,11,.2);color:#f5e6c8;border:1px solid rgba(184,134,11,.4)}
+
 /* 有料導線 */
 .upsell{background:linear-gradient(135deg,rgba(184,134,11,.08) 0%,rgba(218,165,32,.05) 100%);border:1px solid rgba(184,134,11,.25);border-radius:16px;padding:28px 22px;margin-bottom:24px;text-align:center}
 .upsell h3{font-family:'Noto Serif JP',serif;color:#f5e6c8;font-size:18px;margin:8px 0}
@@ -419,8 +431,17 @@ textarea{resize:none;line-height:1.8}
       </a>
     </div>
 
-    <button class="btn-secondary" onclick="resetForm()" style="margin-bottom:12px">🔮 もう一度占う</button>
-    <button class="btn-secondary" onclick="shareResult()" style="border-color:rgba(155,142,196,.3);color:#9b8ec4;margin-bottom:40px">📱 結果をシェアする</button>
+    <button class="btn-secondary" onclick="resetForm()" style="margin-bottom:16px">🔮 もう一度占う</button>
+
+    <div class="share-section">
+      <p class="share-label">結果をSNSでシェア</p>
+      <div class="share-btns">
+        <a href="#" id="share-x" class="share-btn share-btn-x" target="_blank" rel="noopener">𝕏 X</a>
+        <a href="#" id="share-line" class="share-btn share-btn-line" target="_blank" rel="noopener">LINE</a>
+        <button type="button" id="share-copy" class="share-btn share-btn-copy">コピー（Instagramなど）</button>
+        <button type="button" id="share-native" class="share-btn share-btn-native" style="display:none">📱 シェア</button>
+      </div>
+    </div>
     
     <div style="text-align:center;padding-bottom:20px">
       <p class="privacy" style="line-height:1.8">占いは娯楽としてお楽しみください。<br>© 星詠みの館</p>
@@ -507,6 +528,53 @@ function submitFortune() {
   });
 }
 
+function resetForm() {
+  showPage('form');
+  lastResult = null;
+}
+
+function getShareText() {
+  if (!lastResult) return { text: '', url: window.location.href };
+  var url = window.location.href;
+  var text = '🔮星詠みの館で占ってもらった！\nタロット「' +
+    lastResult.card.name + '」' + lastResult.card.position +
+    ' × 四柱推命「' + lastResult.stem.name + '」\n\n▶ 無料鑑定はこちら → ' + url;
+  return { text: text, url: url };
+}
+
+function setupShareButtons() {
+  var nativeBtn = document.getElementById('share-native');
+  if (navigator.share) nativeBtn.style.display = 'inline-flex';
+
+  document.getElementById('share-x').onclick = function(e) {
+    e.preventDefault();
+    var s = getShareText();
+    if (!lastResult) return;
+    window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(s.text), '_blank', 'noopener,noreferrer');
+  };
+
+  document.getElementById('share-line').onclick = function(e) {
+    e.preventDefault();
+    var s = getShareText();
+    if (!lastResult) return;
+    window.open('https://line.me/R/msg/text/?' + encodeURIComponent(s.text), '_blank', 'noopener,noreferrer');
+  };
+
+  document.getElementById('share-copy').onclick = function() {
+    var s = getShareText();
+    if (!lastResult) return;
+    navigator.clipboard.writeText(s.text).then(function() {
+      alert('コピーしました！Instagram・DM・ストーリーなどに貼り付けてね✨');
+    });
+  };
+
+  nativeBtn.onclick = function() {
+    var s = getShareText();
+    if (!lastResult || !navigator.share) return;
+    navigator.share({ text: s.text, title: '星詠みの館', url: s.url });
+  };
+}
+
 function displayResult(data, name) {
   document.getElementById('result-title').textContent = name + 'さんへの鑑定結果';
   document.getElementById('result-card-label').innerHTML = 
@@ -525,26 +593,8 @@ function displayResult(data, name) {
     tarotCardEl.classList.toggle('reversed', !data.card.is_upright);
   }
   document.getElementById('result-text').textContent = data.fortune_text;
+  setupShareButtons();
   showPage('result');
-}
-
-function resetForm() {
-  showPage('form');
-  lastResult = null;
-}
-
-function shareResult() {
-  if (!lastResult) return;
-  const text = '🔮星詠みの館で占ってもらった！\\nタロット「' + 
-    lastResult.card.name + '」' + lastResult.card.position + 
-    ' × 四柱推命「' + lastResult.stem.name + '」\\n\\n▶ 無料鑑定はこちら → ' + window.location.href;
-  
-  if (navigator.share) {
-    navigator.share({text: text});
-  } else {
-    navigator.clipboard.writeText(text.replace(/\\n/g, '\\n'));
-    alert('シェア用テキストをコピーしました！SNSに貼り付けてね✨');
-  }
 }
 </script>
 
