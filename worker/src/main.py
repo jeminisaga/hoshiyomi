@@ -231,43 +231,56 @@ def json_response(obj: dict, status: int = 200) -> Response:
 
 class Default(WorkerEntrypoint):
     async def fetch(self, request) -> Response:
-        url_str = getattr(request, "url", None) or str(request)
-        path = urlparse(url_str).path.rstrip("/") or "/"
-        method = getattr(request, "method", "GET") or "GET"
+        try:
+            url_str = getattr(request, "url", None)
+            if url_str is None:
+                url_str = str(getattr(request, "request", request))
+            if not isinstance(url_str, str):
+                url_str = str(url_str)
+            path = urlparse(url_str).path.rstrip("/") or "/"
+            method = (getattr(request, "method", None) or "GET").upper()
 
-        if path == "/" and method == "GET":
-            html = HTML_TEMPLATE.replace("__BOOKING_URL__", BOOKING_URL)
-            if "__TAROT_IMAGE_URLS_JSON__" in html:
-                html = html.replace("__TAROT_IMAGE_URLS_JSON__", json.dumps(TAROT_IMAGE_URLS, ensure_ascii=False))
-            return html_response(html)
+            if path == "/" and method == "GET":
+                html = HTML_TEMPLATE.replace("__BOOKING_URL__", BOOKING_URL)
+                if "__TAROT_IMAGE_URLS_JSON__" in html:
+                    html = html.replace("__TAROT_IMAGE_URLS_JSON__", json.dumps(TAROT_IMAGE_URLS, ensure_ascii=False))
+                return html_response(html)
 
-        if path == "/booking" and method == "GET":
-            return html_response(BOOKING_DEMO_HTML)
+            if path == "/booking" and method == "GET":
+                return html_response(BOOKING_DEMO_HTML)
 
-        if path == "/api/tarot-urls" and method == "GET":
-            return json_response(TAROT_IMAGE_URLS)
+            if path == "/api/tarot-urls" and method == "GET":
+                return json_response(TAROT_IMAGE_URLS)
 
-        if path == "/api/health" and method == "GET":
-            return json_response({"status": "ok", "timestamp": datetime.utcnow().isoformat() + "Z"})
+            if path == "/api/health" and method == "GET":
+                return json_response({"status": "ok", "timestamp": datetime.utcnow().isoformat() + "Z"})
 
-        if path == "/api/fortune" and method == "POST":
-            try:
-                body = await request.json()
-            except Exception:
-                return json_response({"error": "Invalid JSON"}, 400)
-            api_key = getattr(self.env, "ANTHROPIC_API_KEY", "") if self.env else ""
-            try:
-                result = await generate_fortune_with_claude(
-                    api_key=api_key,
-                    name=body["name"],
-                    birth_year=int(body["birth_year"]),
-                    birth_month=int(body["birth_month"]),
-                    birth_day=int(body["birth_day"]),
-                    category=body.get("category", "love"),
-                    concern=body.get("concern", ""),
-                )
-                return json_response(result)
-            except Exception as e:
-                return json_response({"error": str(e)}, 500)
+            if path == "/api/fortune" and method == "POST":
+                try:
+                    body = await request.json()
+                except Exception:
+                    return json_response({"error": "Invalid JSON"}, 400)
+                env = getattr(self, "env", None)
+                api_key = getattr(env, "ANTHROPIC_API_KEY", "") if env else ""
+                try:
+                    result = await generate_fortune_with_claude(
+                        api_key=api_key,
+                        name=body["name"],
+                        birth_year=int(body["birth_year"]),
+                        birth_month=int(body["birth_month"]),
+                        birth_day=int(body["birth_day"]),
+                        category=body.get("category", "love"),
+                        concern=body.get("concern", ""),
+                    )
+                    return json_response(result)
+                except Exception as e:
+                    return json_response({"error": str(e)}, 500)
 
-        return Response("Not Found", status=404)
+            return Response("Not Found", status=404)
+        except Exception as e:
+            err_msg = f"{type(e).__name__}: {e}"
+            return Response(
+                f"<pre>Worker Error\n\n{err_msg}</pre>",
+                status=500,
+                headers={"Content-Type": "text/html; charset=utf-8"},
+            )
