@@ -325,7 +325,7 @@ textarea{resize:none;line-height:1.8}
       🌙 あなただけの特別なメッセージ<br>
       🌙 <span class="gold">完全無料</span>・所要時間わずか1分
     </div>
-    <button class="btn-primary" onclick="showPage('form')">✦ 無料鑑定をはじめる ✦</button>
+    <button type="button" class="btn-primary" id="btn-start">✦ 無料鑑定をはじめる ✦</button>
     <p class="privacy">※個人情報は鑑定にのみ使用し、保存されません</p>
     <div class="disclaimer">占いは娯楽としてお楽しみください。<br>医療・法律・投資の専門的助言ではありません。</div>
   </div>
@@ -450,8 +450,18 @@ textarea{resize:none;line-height:1.8}
 
 </div>
 
+<script type="application/json" id="tarot-image-urls">{{ TAROT_IMAGE_URLS | tojson }}</script>
 <script>
-// ページ切り替え（最初に定義してボタンが確実に動くようにする）
+// 設定読み込み（JSON を別 script に分けて構文エラーを防ぐ）
+var TAROT_IMAGE_URLS = [];
+(function() {
+  var el = document.getElementById('tarot-image-urls');
+  if (el && el.textContent) {
+    try { TAROT_IMAGE_URLS = JSON.parse(el.textContent); } catch (e) {}
+  }
+})();
+
+// ページ切り替え
 function showPage(page) {
   var ids = ['landing', 'form', 'loading', 'result'];
   for (var i = 0; i < ids.length; i++) {
@@ -462,6 +472,10 @@ function showPage(page) {
   if (target) target.classList.remove('hidden');
   window.scrollTo(0, 0);
 }
+
+// ボタン：無料鑑定をはじめる（インライン onclick に頼らない）
+var btnStart = document.getElementById('btn-start');
+if (btnStart) btnStart.addEventListener('click', function() { showPage('form'); });
 
 // 星空生成
 (function() {
@@ -483,10 +497,6 @@ function showPage(page) {
 
 var selectedCategory = 'love';
 var lastResult = null;
-var TAROT_IMAGE_URLS = [];
-try {
-  TAROT_IMAGE_URLS = {{ TAROT_IMAGE_URLS | tojson }};
-} catch (e) {}
 
 function selectCat(btn) {
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
