@@ -1,4 +1,4 @@
-# 星詠みの館 - Cloudflare Workers (Python) | deploy from repo root, main=worker/src/main.py
+# 星詠みの館 - Cloudflare Workers (Python) entry point
 import json
 import random
 from datetime import date, datetime
@@ -207,7 +207,7 @@ BOOKING_DEMO_HTML = """<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>詳しい鑑定を予約する | 星詠みの館</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+JP:wght@300;400;600&display=swap" rel="stylesheet">
 <style>

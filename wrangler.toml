@@ -1,7 +1,7 @@
-# Cloudflare Workers をリポジトリルートからデプロイする用
-# ビルドは worker/ で行う場合は、Dashboard で Root directory = "worker" にし、
-# Deploy command = "uv run pywrangler deploy" にしてください。
+# Cloudflare Workers: 必ずリポジトリルートからデプロイすること
+# Dashboard: Root directory = （空欄のまま） / Build command: npx wrangler deploy
+# Root directory を "worker" にしていると古い worker/wrangler.toml が使われ、キャッシュで SyntaxError になることがあります
 name = "hoshiyomi"
-main = "worker/src/main.py"
+main = "worker/src/entry.py"
 compatibility_date = "2025-02-01"
 compatibility_flags = ["python_workers"]

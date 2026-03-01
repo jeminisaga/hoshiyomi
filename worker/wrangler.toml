@@ -1,5 +1,5 @@
 name = "hoshiyomi-no-yakata"
-main = "src/main.py"
+main = "src/entry.py"
 compatibility_date = "2025-02-01"
 compatibility_flags = ["python_workers"]
 
