@@ -325,7 +325,7 @@ textarea{resize:none;line-height:1.8}
       🌙 あなただけの特別なメッセージ<br>
       🌙 <span class="gold">完全無料</span>・所要時間わずか1分
     </div>
-    <button type="button" class="btn-primary" id="btn-start">✦ 無料鑑定をはじめる ✦</button>
+    <a href="#form" class="btn-primary" id="btn-start" style="display:block;text-decoration:none;color:#0d0221;text-align:center;cursor:pointer">✦ 無料鑑定をはじめる ✦</a>
     <p class="privacy">※個人情報は鑑定にのみ使用し、保存されません</p>
     <div class="disclaimer">占いは娯楽としてお楽しみください。<br>医療・法律・投資の専門的助言ではありません。</div>
   </div>
@@ -452,46 +452,57 @@ textarea{resize:none;line-height:1.8}
 
 <script type="application/json" id="tarot-image-urls">{{ TAROT_IMAGE_URLS | tojson }}</script>
 <script>
-// 設定読み込み（JSON を別 script に分けて構文エラーを防ぐ）
-var TAROT_IMAGE_URLS = [];
 (function() {
-  var el = document.getElementById('tarot-image-urls');
-  if (el && el.textContent) {
-    try { TAROT_IMAGE_URLS = JSON.parse(el.textContent); } catch (e) {}
+  'use strict';
+  function showPage(page) {
+    var ids = ['landing', 'form', 'loading', 'result'];
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.getElementById('page-' + ids[i]);
+      if (el) el.classList.add('hidden');
+    }
+    var target = document.getElementById('page-' + page);
+    if (target) target.classList.remove('hidden');
+    window.scrollTo(0, 0);
   }
-})();
+  window.showPage = showPage;
 
-// ページ切り替え
-function showPage(page) {
-  var ids = ['landing', 'form', 'loading', 'result'];
-  for (var i = 0; i < ids.length; i++) {
-    var el = document.getElementById('page-' + ids[i]);
-    if (el) el.classList.add('hidden');
+  function init() {
+    var TAROT_IMAGE_URLS = [];
+    var el = document.getElementById('tarot-image-urls');
+    if (el && el.textContent) { try { TAROT_IMAGE_URLS = JSON.parse(el.textContent); } catch (e) {} }
+    window.TAROT_IMAGE_URLS = TAROT_IMAGE_URLS;
+
+    var btnStart = document.getElementById('btn-start') || document.querySelector('#page-landing .btn-primary');
+    if (btnStart) {
+      btnStart.addEventListener('click', function(e) {
+        e.preventDefault();
+        showPage('form');
+        return false;
+      });
+    }
+    if (window.location.hash === '#form') showPage('form');
+
+    var container = document.getElementById('stars');
+    if (container) {
+      for (var i = 0; i < 60; i++) {
+        var star = document.createElement('div');
+        star.className = 'star';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        var size = Math.random() * 2.5 + 0.5;
+        star.style.width = size + 'px';
+        star.style.height = size + 'px';
+        star.style.setProperty('--d', (Math.random() * 3 + 2) + 's');
+        star.style.setProperty('--del', (Math.random() * 3) + 's');
+        container.appendChild(star);
+      }
+    }
   }
-  var target = document.getElementById('page-' + page);
-  if (target) target.classList.remove('hidden');
-  window.scrollTo(0, 0);
-}
 
-// ボタン：無料鑑定をはじめる（インライン onclick に頼らない）
-var btnStart = document.getElementById('btn-start');
-if (btnStart) btnStart.addEventListener('click', function() { showPage('form'); });
-
-// 星空生成
-(function() {
-  var container = document.getElementById('stars');
-  if (!container) return;
-  for (var i = 0; i < 60; i++) {
-    var star = document.createElement('div');
-    star.className = 'star';
-    star.style.left = Math.random() * 100 + '%';
-    star.style.top = Math.random() * 100 + '%';
-    var size = Math.random() * 2.5 + 0.5;
-    star.style.width = size + 'px';
-    star.style.height = size + 'px';
-    star.style.setProperty('--d', (Math.random() * 3 + 2) + 's');
-    star.style.setProperty('--del', (Math.random() * 3) + 's');
-    container.appendChild(star);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
   }
 })();
 
