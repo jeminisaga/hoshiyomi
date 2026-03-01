@@ -3,8 +3,17 @@ import json
 import random
 from datetime import date, datetime
 from urllib.parse import urlparse
-from workers import WorkerEntrypoint, Response, fetch
-from template_str import HTML_TEMPLATE
+from workers import WorkerEntrypoint, Response
+
+try:
+    from workers import fetch
+except Exception:
+    fetch = None
+
+try:
+    from template_str import HTML_TEMPLATE
+except Exception:
+    HTML_TEMPLATE = "<!DOCTYPE html><html><head><meta charset=utf-8><title>星詠みの館</title></head><body><h1>星詠みの館</h1><p>読み込みエラー。テンプレートを確認してください。</p></body></html>"
 
 TAROT_CARDS = [
     {"name": "愚者", "number": 0},
@@ -153,7 +162,7 @@ async def generate_fortune_with_claude(
 
 300-500文字で鑑定文のみを出力してください。タイトルや見出しは不要です。"""
 
-    if not api_key:
+    if not api_key or fetch is None:
         fortune_text = generate_fallback_fortune(name, card, stem, category, concern)
         return {"fortune_text": fortune_text, "card": card, "stem": {"name": stem["name"], "reading": stem["reading"], "element": stem["element"]}}
 
