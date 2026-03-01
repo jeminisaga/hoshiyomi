@@ -10,12 +10,20 @@ try:
 except Exception:
     fetch = None
 
-try:
-    from template_str import HTML_TEMPLATE
-except Exception:
-    HTML_TEMPLATE = "<!DOCTYPE html><html><head><meta charset=utf-8><title>星詠みの館</title></head><body><h1>星詠みの館</h1><p>読み込みエラー。テンプレートを確認してください。</p></body></html>"
+# template_str はバンドル・サイズで問題が出ることがあるため、最小HTMLを直書き
+HTML_TEMPLATE = """<!DOCTYPE html>
+<html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>星詠みの館</title></head>
+<body style="margin:0;font-family:sans-serif;background:#0d0221;color:#e8dff0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px">
+<div style="text-align:center">
+<h1 style="color:#daa520">星詠みの館</h1>
+<p style="color:#9b8ec4">タロット×四柱推命のAI占い</p>
+<p style="margin-top:24px"><a href="/booking" style="color:#daa520">詳しい鑑定を予約する</a></p>
+<p style="margin-top:16px;font-size:14px;color:#665c80">Worker稼働確認用の最小表示です。フル版は template_str を有効化してください。</p>
+</div></body></html>"""
 
-TAROT_CARDS = [
+ERROR_AT_IMPORT = None
+try:
+    TAROT_CARDS = [
     {"name": "愚者", "number": 0},
     {"name": "魔術師", "number": 1},
     {"name": "女教皇", "number": 2},
@@ -241,13 +249,18 @@ def json_response(obj: dict, status: int = 200) -> Response:
 class Default(WorkerEntrypoint):
     async def fetch(self, request) -> Response:
         try:
-            url_str = getattr(request, "url", None)
-            if url_str is None:
-                url_str = str(getattr(request, "request", request))
-            if not isinstance(url_str, str):
-                url_str = str(url_str)
-            path = urlparse(url_str).path.rstrip("/") or "/"
-            method = (getattr(request, "method", None) or "GET").upper()
+            try:
+                url_str = getattr(request, "url", None)
+                if url_str is None:
+                    url_str = str(getattr(request, "request", request))
+                if not isinstance(url_str, str):
+                    url_str = str(url_str)
+                path = urlparse(url_str).path.rstrip("/") or "/"
+                method = (getattr(request, "method", None) or "GET").upper()
+            except Exception as url_err:
+                return html_response(
+                    f"<pre>URL parse error: {type(url_err).__name__}: {url_err}</pre>"
+                )
 
             if path == "/" and method == "GET":
                 html = HTML_TEMPLATE.replace("__BOOKING_URL__", BOOKING_URL)
@@ -290,6 +303,16 @@ class Default(WorkerEntrypoint):
             err_msg = f"{type(e).__name__}: {e}"
             return Response(
                 f"<pre>Worker Error\n\n{err_msg}</pre>",
+                status=500,
+                headers={"Content-Type": "text/html; charset=utf-8"},
+            )
+except Exception as _e:
+    ERROR_AT_IMPORT = f"{type(_e).__name__}: {_e}"
+
+    class Default(WorkerEntrypoint):
+        async def fetch(self, request) -> Response:
+            return Response(
+                f"<pre>Import error:\n{ERROR_AT_IMPORT}</pre>",
                 status=500,
                 headers={"Content-Type": "text/html; charset=utf-8"},
             )
