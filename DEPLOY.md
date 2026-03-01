@@ -50,10 +50,14 @@ git push -u origin main
 
 ## 1. テンプレートを生成（app.py を更新したあと）
 
+**必須。** `app.py` や `static/app.js` を変えたら毎回実行してください。
+
 ```powershell
 cd "c:\Users\jemin\Downloads\files"
 python scripts/extract_template.py
 ```
+
+- `{{ booking_url }}` を `__BOOKING_URL__` に、`<script src="/static/app.js">` を `static/app.js` の内容でインライン化した HTML が `worker/src/template_str.py` に出力されます。
 
 ## 2. Worker のセットアップ（初回のみ）
 
@@ -100,3 +104,6 @@ Cloudflare Python Workers はビルドに Pyodide（WASM）を使うため、**W
 
 3. **Cloudflare の「Deploy with Git」を使う**  
    Dashboard の Workers & Pages で「Create Worker」→「Deploy with Git」でリポジトリを接続し、ビルドを Cloudflare 側で行う方法もあります（Python Worker が Git ビルドに対応している場合）。
+
+4. **WSL からデプロイする（推奨）**  
+   Windows で `uv run pywrangler deploy` が失敗する場合は、WSL 内でリポジトリをクローンし、`cd worker && uv tool install workers-py && uv sync && uv run pywrangler deploy` を実行すると成功しやすいです。

@@ -191,6 +191,39 @@ def html_response(html: str) -> Response:
     return Response(html, status=200, headers={"Content-Type": "text/html; charset=utf-8"})
 
 
+BOOKING_URL = "/booking"
+BOOKING_DEMO_HTML = """<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>詳しい鑑定を予約する | 星詠みの館</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+JP:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans JP',sans-serif;background:linear-gradient(180deg,#060114 0%,#0d0221 30%,#150735 60%,#0a0118 100%);color:#e8dff0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{max-width:420px;width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(218,165,32,.25);border-radius:20px;padding:40px 28px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.4)}
+h1{font-family:'Noto Serif JP',serif;font-size:22px;color:#daa520;margin-bottom:12px;letter-spacing:2px}
+.badge{display:inline-block;font-size:11px;color:#9b8ec4;background:rgba(155,142,196,.2);padding:4px 12px;border-radius:999px;margin-bottom:24px}
+p{font-size:15px;line-height:1.9;color:#c9b8e8;margin-bottom:16px}
+.note{font-size:13px;color:#8a7aa8;margin-top:24px}
+a.back{display:inline-block;margin-top:28px;color:#daa520;text-decoration:none;font-size:14px;border:1px solid rgba(218,165,32,.5);padding:10px 24px;border-radius:999px;}
+a.back:hover{background:rgba(218,165,32,.15)}
+</style>
+</head>
+<body>
+<div class="card">
+<span class="badge">デモページ</span>
+<h1>✦ 詳しい鑑定を予約する ✦</h1>
+<p>ここが「詳しい鑑定を予約する」の飛び先です。</p>
+<p>本番では、LINE・予約フォームなどご希望のURLに差し替えできます。</p>
+<p class="note">Worker では BOOKING_URL を変更して差し替え可能です。</p>
+<a href="/" class="back">← 占いトップに戻る</a>
+</div>
+</body>
+</html>"""
+
+
 def json_response(obj: dict, status: int = 200) -> Response:
     return Response(json.dumps(obj, ensure_ascii=False), status=status, headers={"Content-Type": "application/json; charset=utf-8"})
 
@@ -202,8 +235,16 @@ class Default(WorkerEntrypoint):
         method = getattr(request, "method", "GET") or "GET"
 
         if path == "/" and method == "GET":
-            html = HTML_TEMPLATE.replace("__TAROT_IMAGE_URLS_JSON__", json.dumps(TAROT_IMAGE_URLS, ensure_ascii=False))
+            html = HTML_TEMPLATE.replace("__BOOKING_URL__", BOOKING_URL)
+            if "__TAROT_IMAGE_URLS_JSON__" in html:
+                html = html.replace("__TAROT_IMAGE_URLS_JSON__", json.dumps(TAROT_IMAGE_URLS, ensure_ascii=False))
             return html_response(html)
+
+        if path == "/booking" and method == "GET":
+            return html_response(BOOKING_DEMO_HTML)
+
+        if path == "/api/tarot-urls" and method == "GET":
+            return json_response(TAROT_IMAGE_URLS)
 
         if path == "/api/health" and method == "GET":
             return json_response({"status": "ok", "timestamp": datetime.utcnow().isoformat() + "Z"})
