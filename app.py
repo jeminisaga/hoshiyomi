@@ -14,6 +14,8 @@ app = Flask(__name__)
 # ===== 設定 =====
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL = "claude-sonnet-4-5-20250929"
+# 「詳しい鑑定を予約する」のリンク先（デモは /booking。本番では LINE・予約フォーム等のURLを指定）
+BOOKING_URL = os.environ.get("BOOKING_URL", "/booking")
 
 # ===== タロット大アルカナ22枚 =====
 TAROT_CARDS = [
@@ -325,7 +327,7 @@ textarea{resize:none;line-height:1.8}
       🌙 あなただけの特別なメッセージ<br>
       🌙 <span class="gold">完全無料</span>・所要時間わずか1分
     </div>
-    <a href="#form" class="btn-primary" id="btn-start" style="display:block;text-decoration:none;color:#0d0221;text-align:center;cursor:pointer">✦ 無料鑑定をはじめる ✦</a>
+    <button type="button" class="btn-primary" onclick="showPage('form')">✦ 無料鑑定をはじめる ✦</button>
     <p class="privacy">※個人情報は鑑定にのみ使用し、保存されません</p>
     <div class="disclaimer">占いは娯楽としてお楽しみください。<br>医療・法律・投資の専門的助言ではありません。</div>
   </div>
@@ -426,7 +428,7 @@ textarea{resize:none;line-height:1.8}
         <p class="menu-desc">リアルタイム対話の特別鑑定<br>あなただけのオリジナルスプレッド</p>
       </div>
 
-      <a href="#" id="booking-link" class="btn-primary" style="display:block;text-decoration:none;text-align:center;margin-top:20px">
+      <a href="{{ booking_url }}" id="booking-link" class="btn-primary" style="display:block;text-decoration:none;text-align:center;margin-top:20px" target="_blank" rel="noopener">
         ✦ 詳しい鑑定を予約する ✦
       </a>
     </div>
@@ -436,10 +438,10 @@ textarea{resize:none;line-height:1.8}
     <div class="share-section">
       <p class="share-label">結果をSNSでシェア</p>
       <div class="share-btns">
-        <a href="#" id="share-x" class="share-btn share-btn-x" target="_blank" rel="noopener">𝕏 X</a>
-        <a href="#" id="share-line" class="share-btn share-btn-line" target="_blank" rel="noopener">LINE</a>
-        <button type="button" id="share-copy" class="share-btn share-btn-copy">コピー（Instagramなど）</button>
-        <button type="button" id="share-native" class="share-btn share-btn-native" style="display:none">📱 シェア</button>
+        <a href="javascript:void(0)" id="share-x" class="share-btn share-btn-x" onclick="shareToX();return false" target="_blank" rel="noopener" role="button">𝕏 X</a>
+        <a href="javascript:void(0)" id="share-line" class="share-btn share-btn-line" onclick="shareToLine();return false" target="_blank" rel="noopener" role="button">LINE</a>
+        <button type="button" id="share-copy" class="share-btn share-btn-copy" onclick="shareCopy()">コピー（Instagramなど）</button>
+        <button type="button" id="share-native" class="share-btn share-btn-native" style="display:none" onclick="shareNative()">📱 シェア</button>
       </div>
     </div>
     
@@ -450,182 +452,7 @@ textarea{resize:none;line-height:1.8}
 
 </div>
 
-<script>
-(function() {
-  'use strict';
-  window.TAROT_IMAGE_URLS = [];
-
-  function showPage(page) {
-    var ids = ['landing', 'form', 'loading', 'result'];
-    for (var i = 0; i < ids.length; i++) {
-      var el = document.getElementById('page-' + ids[i]);
-      if (el) el.classList.add('hidden');
-    }
-    var target = document.getElementById('page-' + page);
-    if (target) target.classList.remove('hidden');
-    window.scrollTo(0, 0);
-  }
-  window.showPage = showPage;
-
-  function init() {
-    fetch('/api/tarot-urls').then(function(r) { return r.json(); }).then(function(urls) {
-      window.TAROT_IMAGE_URLS = urls || [];
-    }).catch(function() {});
-
-    var btnStart = document.getElementById('btn-start') || document.querySelector('#page-landing .btn-primary');
-    if (btnStart) {
-      btnStart.addEventListener('click', function(e) {
-        e.preventDefault();
-        showPage('form');
-        return false;
-      });
-    }
-    if (window.location.hash === '#form') showPage('form');
-
-    var container = document.getElementById('stars');
-    if (container) {
-      for (var i = 0; i < 60; i++) {
-        var star = document.createElement('div');
-        star.className = 'star';
-        star.style.left = Math.random() * 100 + '%';
-        star.style.top = Math.random() * 100 + '%';
-        var size = Math.random() * 2.5 + 0.5;
-        star.style.width = size + 'px';
-        star.style.height = size + 'px';
-        star.style.setProperty('--d', (Math.random() * 3 + 2) + 's');
-        star.style.setProperty('--del', (Math.random() * 3) + 's');
-        container.appendChild(star);
-      }
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-})();
-
-var selectedCategory = 'love';
-var lastResult = null;
-
-function selectCat(btn) {
-  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  selectedCategory = btn.dataset.cat;
-}
-
-function updateCount() {
-  document.getElementById('char-count').textContent = document.getElementById('input-concern').value.length;
-}
-
-function submitFortune() {
-  const name = document.getElementById('input-name').value.trim();
-  const year = document.getElementById('input-year').value;
-  const month = document.getElementById('input-month').value;
-  const day = document.getElementById('input-day').value;
-  const concern = document.getElementById('input-concern').value.trim();
-  
-  if (!name || !year || !month || !day) {
-    alert('お名前と生年月日をご入力ください');
-    return;
-  }
-  
-  showPage('loading');
-  
-  fetch('/api/fortune', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      name: name,
-      birth_year: parseInt(year),
-      birth_month: parseInt(month),
-      birth_day: parseInt(day),
-      category: selectedCategory,
-      concern: concern
-    })
-  })
-  .then(r => r.json())
-  .then(data => {
-    lastResult = data;
-    displayResult(data, name);
-  })
-  .catch(err => {
-    console.error(err);
-    alert('申し訳ございません。しばらくしてからもう一度お試しください。');
-    showPage('form');
-  });
-}
-
-function resetForm() {
-  showPage('form');
-  lastResult = null;
-}
-
-function getShareText() {
-  if (!lastResult) return { text: '', url: window.location.href };
-  var url = window.location.href;
-  var text = '🔮星詠みの館で占ってもらった！\nタロット「' +
-    lastResult.card.name + '」' + lastResult.card.position +
-    ' × 四柱推命「' + lastResult.stem.name + '」\n\n▶ 無料鑑定はこちら → ' + url;
-  return { text: text, url: url };
-}
-
-function setupShareButtons() {
-  var nativeBtn = document.getElementById('share-native');
-  if (navigator.share) nativeBtn.style.display = 'inline-flex';
-
-  document.getElementById('share-x').onclick = function(e) {
-    e.preventDefault();
-    var s = getShareText();
-    if (!lastResult) return;
-    window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(s.text), '_blank', 'noopener,noreferrer');
-  };
-
-  document.getElementById('share-line').onclick = function(e) {
-    e.preventDefault();
-    var s = getShareText();
-    if (!lastResult) return;
-    window.open('https://line.me/R/msg/text/?' + encodeURIComponent(s.text), '_blank', 'noopener,noreferrer');
-  };
-
-  document.getElementById('share-copy').onclick = function() {
-    var s = getShareText();
-    if (!lastResult) return;
-    navigator.clipboard.writeText(s.text).then(function() {
-      alert('コピーしました！Instagram・DM・ストーリーなどに貼り付けてね✨');
-    });
-  };
-
-  nativeBtn.onclick = function() {
-    var s = getShareText();
-    if (!lastResult || !navigator.share) return;
-    navigator.share({ text: s.text, title: '星詠みの館', url: s.url });
-  };
-}
-
-function displayResult(data, name) {
-  document.getElementById('result-title').textContent = name + 'さんへの鑑定結果';
-  document.getElementById('result-card-label').innerHTML = 
-    '🃏 タロット「' + data.card.name + '」' + data.card.position;
-  document.getElementById('result-stem-label').innerHTML = 
-    '☯ 四柱推命「' + data.stem.name + '（' + data.stem.reading + '）」';
-  document.getElementById('tarot-card-name').textContent = data.card.name;
-  document.getElementById('tarot-card-number').textContent = 'No.' + String(data.card.number).padStart(2,'0');
-  document.getElementById('tarot-card-position').textContent = data.card.position;
-  const tarotImgEl = document.getElementById('tarot-card-image');
-  if (tarotImgEl && TAROT_IMAGE_URLS && TAROT_IMAGE_URLS[data.card.number]) {
-    tarotImgEl.src = TAROT_IMAGE_URLS[data.card.number];
-  }
-  const tarotCardEl = document.getElementById('tarot-card');
-  if (tarotCardEl) {
-    tarotCardEl.classList.toggle('reversed', !data.card.is_upright);
-  }
-  document.getElementById('result-text').textContent = data.fortune_text;
-  setupShareButtons();
-  showPage('result');
-}
-</script>
+<script src="/static/app.js"></script>
 
 </body>
 </html>
@@ -634,7 +461,47 @@ function displayResult(data, name) {
 
 @app.route("/")
 def index():
-    return render_template_string(HTML_TEMPLATE)
+    return render_template_string(HTML_TEMPLATE, booking_url=BOOKING_URL)
+
+
+# デモ用：詳しい鑑定の予約先イメージページ（使ってくれた人が飛び先をイメージしやすいように）
+BOOKING_DEMO_HTML = """
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>詳しい鑑定を予約する | 星詠みの館</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+JP:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Noto Sans JP',sans-serif;background:linear-gradient(180deg,#060114 0%,#0d0221 30%,#150735 60%,#0a0118 100%);color:#e8dff0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+    .card{max-width:420px;width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(218,165,32,.25);border-radius:20px;padding:40px 28px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.4)}
+    h1{font-family:'Noto Serif JP',serif;font-size:22px;color:#daa520;margin-bottom:12px;letter-spacing:2px}
+    .badge{display:inline-block;font-size:11px;color:#9b8ec4;background:rgba(155,142,196,.2);padding:4px 12px;border-radius:999px;margin-bottom:24px}
+    p{font-size:15px;line-height:1.9;color:#c9b8e8;margin-bottom:16px}
+    .note{font-size:13px;color:#8a7aa8;margin-top:24px}
+    a.back{display:inline-block;margin-top:28px;color:#daa520;text-decoration:none;font-size:14px;border:1px solid rgba(218,165,32,.5);padding:10px 24px;border-radius:999px;transition:background .2s}
+    a.back:hover{background:rgba(218,165,32,.15)}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="badge">デモページ</span>
+    <h1>✦ 詳しい鑑定を予約する ✦</h1>
+    <p>ここが「詳しい鑑定を予約する」の飛び先です。</p>
+    <p>本番では、LINEの友だち追加・予約フォーム・決済ページなど、ご希望のURLに差し替えできます。</p>
+    <p class="note">設定は app.py の BOOKING_URL または環境変数 BOOKING_URL で変更できます。</p>
+    <a href="/" class="back">← 占いトップに戻る</a>
+  </div>
+</body>
+</html>
+"""
+
+
+@app.route("/booking")
+def booking_demo():
+    return render_template_string(BOOKING_DEMO_HTML)
 
 
 @app.route("/api/tarot-urls")
