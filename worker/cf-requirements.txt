@@ -1,0 +1,2 @@
+# Cloudflare Python Worker 用（main.py が import するパッケージ）
+httpx

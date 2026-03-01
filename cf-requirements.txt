@@ -1,0 +1,3 @@
+# Cloudflare Python Worker 用（npx wrangler deploy 時に参照）
+# worker/src/main.py が import しているパッケージ
+httpx
