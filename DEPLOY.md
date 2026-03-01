@@ -107,3 +107,22 @@ Cloudflare Python Workers はビルドに Pyodide（WASM）を使うため、**W
 
 4. **WSL からデプロイする（推奨）**  
    Windows で `uv run pywrangler deploy` が失敗する場合は、WSL 内でリポジトリをクローンし、`cd worker && uv tool install workers-py && uv sync && uv run pywrangler deploy` を実行すると成功しやすいです。
+
+---
+
+## Cloudflare「Deploy with Git」で「Could not detect static files」が出る場合
+
+リポジトリルートで `npx wrangler deploy` が走ると、設定が見つからず上記エラーになります。
+
+**対応（どちらか）:**
+
+- **A) Root directory を `worker` にする**  
+  1. Workers & Pages → 該当 Worker → **Settings** → **Builds & deployments**  
+  2. **Root directory** を `worker` に設定（ルートではなく worker フォルダでビルド）  
+  3. **Build command**: `uv tool install workers-py && uv sync`（uv が使える場合）  
+  4. **Deploy command**: `uv run pywrangler deploy`  
+  ビルド環境に uv がない場合は、先に uv を入れるステップを追加するか、公式の Python Worker 用イメージを指定してください。
+
+- **B) ルートの wrangler.toml を使う**  
+  リポジトリルートに `wrangler.toml` を置いてあり、`main = "worker/src/main.py"` を指定しています。  
+  Deploy command を `npx wrangler deploy` のままにして再デプロイし、Python Worker としてビルドされるか確認してください。失敗する場合は A に切り替えてください。

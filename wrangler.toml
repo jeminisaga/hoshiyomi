@@ -1,0 +1,7 @@
+# Cloudflare Workers をリポジトリルートからデプロイする用
+# ビルドは worker/ で行う場合は、Dashboard で Root directory = "worker" にし、
+# Deploy command = "uv run pywrangler deploy" にしてください。
+name = "hoshiyomi-no-yakata"
+main = "worker/src/main.py"
+compatibility_date = "2025-02-01"
+compatibility_flags = ["python_workers"]
