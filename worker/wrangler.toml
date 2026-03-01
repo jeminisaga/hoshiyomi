@@ -1,0 +1,7 @@
+name = "hoshiyomi-no-yakata"
+main = "src/main.py"
+compatibility_date = "2025-02-01"
+compatibility_flags = ["python_workers"]
+
+# 本番では Cloudflare Dashboard で ANTHROPIC_API_KEY を Secret に設定
+# Workers & Pages → 該当 Worker → Settings → Variables and Secrets

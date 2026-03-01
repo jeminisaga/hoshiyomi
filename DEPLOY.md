@@ -25,3 +25,78 @@ git push -u origin main
 
 - 表示された URL（例: `https://hoshiyomi-no-yakata.onrender.com`）でサイトにアクセス
 - 無料プランはスリープするため、しばらくアクセスがないと初回表示が遅くなります
+
+---
+
+# デプロイ先: Cloudflare Workers（Python）
+
+## 前提
+
+- [Node.js](https://nodejs.org/) と [uv](https://docs.astral.sh/uv/) をインストール済みであること
+- Cloudflare アカウントがあること
+
+**uv がパスにない場合**（PowerShell で `uv` と打って「認識されません」と出る場合）は、次のどちらかで実行できます。
+
+- **方法A** いちどだけ PATH を足してから実行:
+  ```powershell
+  $env:Path = "C:\Users\jemin\AppData\Local\Python\pythoncore-3.14-64\Scripts;" + $env:Path
+  ```
+  その後、同じウィンドウで `uv run pywrangler deploy` などが使えます。
+
+- **方法B** 毎回フルパスで実行:
+  ```powershell
+  & "C:\Users\jemin\AppData\Local\Python\pythoncore-3.14-64\Scripts\uv.exe" run pywrangler deploy
+  ```
+
+## 1. テンプレートを生成（app.py を更新したあと）
+
+```powershell
+cd "c:\Users\jemin\Downloads\files"
+python scripts/extract_template.py
+```
+
+## 2. Worker のセットアップ（初回のみ）
+
+```powershell
+cd worker
+uv tool install workers-py
+uv sync
+```
+
+## 3. デプロイ
+
+```powershell
+cd worker
+uv run pywrangler deploy
+```
+
+初回は Cloudflare にログインするよう促されます（ブラウザが開きます）。
+
+## 4. API キーを設定
+
+1. [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages**
+2. **hoshiyomi-no-yakata** を選択
+3. **Settings** → **Variables and Secrets**
+4. **Add** → **Secret** で `ANTHROPIC_API_KEY` を追加（Claude API キーを入力）
+
+## 5. 完了後
+
+- Worker の URL（例: `https://hoshiyomi-no-yakata.<あなたのサブドメイン>.workers.dev`）でサイトにアクセス
+- カスタムドメインも Workers の設定から追加できます
+
+---
+
+## ⚠ Windows で「Python interpreter not found」が出る場合
+
+Cloudflare Python Workers はビルドに Pyodide（WASM）を使うため、**Windows では `uv run pywrangler deploy` が失敗することがあります**（`pyodide-3.12.7-emscripten-wasm32-musl\python.exe` が存在しないため）。
+
+**対処法:**
+
+1. **Render でデプロイする**  
+   同じリポジトリを Render に接続すれば、Flask 版（`app.py`）がそのまま動きます。Cloudflare より手軽です。
+
+2. **WSL（Linux）からデプロイする**  
+   WSL を入れたうえで、その中で `uv run pywrangler deploy` を実行すると成功しやすいです。
+
+3. **Cloudflare の「Deploy with Git」を使う**  
+   Dashboard の Workers & Pages で「Create Worker」→「Deploy with Git」でリポジトリを接続し、ビルドを Cloudflare 側で行う方法もあります（Python Worker が Git ビルドに対応している場合）。
