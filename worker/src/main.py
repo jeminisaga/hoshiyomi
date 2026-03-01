@@ -3,9 +3,8 @@ import json
 import random
 from datetime import date, datetime
 from urllib.parse import urlparse
-from workers import WorkerEntrypoint, Response
+from workers import WorkerEntrypoint, Response, fetch
 from template_str import HTML_TEMPLATE
-import httpx
 
 TAROT_CARDS = [
     {"name": "愚者", "number": 0},
@@ -159,24 +158,26 @@ async def generate_fortune_with_claude(
         return {"fortune_text": fortune_text, "card": card, "stem": {"name": stem["name"], "reading": stem["reading"], "element": stem["element"]}}
 
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            r = await client.post(
-                "https://api.anthropic.com/v1/messages",
-                headers={
-                    "x-api-key": api_key,
-                    "anthropic-version": "2023-06-01",
-                    "content-type": "application/json",
-                },
-                json={
-                    "model": CLAUDE_MODEL,
-                    "max_tokens": 800,
-                    "system": system_prompt,
-                    "messages": [{"role": "user", "content": user_prompt}],
-                },
-            )
-            r.raise_for_status()
-            data = r.json()
-            fortune_text = data["content"][0]["text"]
+        body = json.dumps({
+            "model": CLAUDE_MODEL,
+            "max_tokens": 800,
+            "system": system_prompt,
+            "messages": [{"role": "user", "content": user_prompt}],
+        }, ensure_ascii=False)
+        r = await fetch(
+            "https://api.anthropic.com/v1/messages",
+            method="POST",
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            body=body,
+        )
+        if r.status != 200:
+            raise RuntimeError(f"API status {r.status}")
+        data = await r.json()
+        fortune_text = data["content"][0]["text"]
     except Exception:
         fortune_text = generate_fallback_fortune(name, card, stem, category, concern)
 
