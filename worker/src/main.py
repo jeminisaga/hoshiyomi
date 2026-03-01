@@ -21,9 +21,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <p style="margin-top:16px;font-size:14px;color:#665c80">Worker稼働確認用の最小表示です。フル版は template_str を有効化してください。</p>
 </div></body></html>"""
 
-ERROR_AT_IMPORT = None
-try:
-    TAROT_CARDS = [
+TAROT_CARDS = [
     {"name": "愚者", "number": 0},
     {"name": "魔術師", "number": 1},
     {"name": "女教皇", "number": 2},
@@ -303,16 +301,6 @@ class Default(WorkerEntrypoint):
             err_msg = f"{type(e).__name__}: {e}"
             return Response(
                 f"<pre>Worker Error\n\n{err_msg}</pre>",
-                status=500,
-                headers={"Content-Type": "text/html; charset=utf-8"},
-            )
-except Exception as _e:
-    ERROR_AT_IMPORT = f"{type(_e).__name__}: {_e}"
-
-    class Default(WorkerEntrypoint):
-        async def fetch(self, request) -> Response:
-            return Response(
-                f"<pre>Import error:\n{ERROR_AT_IMPORT}</pre>",
                 status=500,
                 headers={"Content-Type": "text/html; charset=utf-8"},
             )
