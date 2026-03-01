@@ -451,15 +451,28 @@ textarea{resize:none;line-height:1.8}
 </div>
 
 <script>
+// ページ切り替え（最初に定義してボタンが確実に動くようにする）
+function showPage(page) {
+  var ids = ['landing', 'form', 'loading', 'result'];
+  for (var i = 0; i < ids.length; i++) {
+    var el = document.getElementById('page-' + ids[i]);
+    if (el) el.classList.add('hidden');
+  }
+  var target = document.getElementById('page-' + page);
+  if (target) target.classList.remove('hidden');
+  window.scrollTo(0, 0);
+}
+
 // 星空生成
 (function() {
-  const container = document.getElementById('stars');
-  for (let i = 0; i < 60; i++) {
-    const star = document.createElement('div');
+  var container = document.getElementById('stars');
+  if (!container) return;
+  for (var i = 0; i < 60; i++) {
+    var star = document.createElement('div');
     star.className = 'star';
     star.style.left = Math.random() * 100 + '%';
     star.style.top = Math.random() * 100 + '%';
-    const size = Math.random() * 2.5 + 0.5;
+    var size = Math.random() * 2.5 + 0.5;
     star.style.width = size + 'px';
     star.style.height = size + 'px';
     star.style.setProperty('--d', (Math.random() * 3 + 2) + 's');
@@ -468,17 +481,12 @@ textarea{resize:none;line-height:1.8}
   }
 })();
 
-let selectedCategory = 'love';
-let lastResult = null;
-const TAROT_IMAGE_URLS = {{ TAROT_IMAGE_URLS | tojson }};
-
-function showPage(page) {
-  ['landing', 'form', 'loading', 'result'].forEach(p => {
-    document.getElementById('page-' + p).classList.add('hidden');
-  });
-  document.getElementById('page-' + page).classList.remove('hidden');
-  window.scrollTo(0, 0);
-}
+var selectedCategory = 'love';
+var lastResult = null;
+var TAROT_IMAGE_URLS = [];
+try {
+  TAROT_IMAGE_URLS = {{ TAROT_IMAGE_URLS | tojson }};
+} catch (e) {}
 
 function selectCat(btn) {
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
