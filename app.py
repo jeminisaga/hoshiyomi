@@ -450,10 +450,11 @@ textarea{resize:none;line-height:1.8}
 
 </div>
 
-<script type="application/json" id="tarot-image-urls">{{ TAROT_IMAGE_URLS | tojson }}</script>
 <script>
 (function() {
   'use strict';
+  window.TAROT_IMAGE_URLS = [];
+
   function showPage(page) {
     var ids = ['landing', 'form', 'loading', 'result'];
     for (var i = 0; i < ids.length; i++) {
@@ -467,10 +468,9 @@ textarea{resize:none;line-height:1.8}
   window.showPage = showPage;
 
   function init() {
-    var TAROT_IMAGE_URLS = [];
-    var el = document.getElementById('tarot-image-urls');
-    if (el && el.textContent) { try { TAROT_IMAGE_URLS = JSON.parse(el.textContent); } catch (e) {} }
-    window.TAROT_IMAGE_URLS = TAROT_IMAGE_URLS;
+    fetch('/api/tarot-urls').then(function(r) { return r.json(); }).then(function(urls) {
+      window.TAROT_IMAGE_URLS = urls || [];
+    }).catch(function() {});
 
     var btnStart = document.getElementById('btn-start') || document.querySelector('#page-landing .btn-primary');
     if (btnStart) {
@@ -634,7 +634,12 @@ function displayResult(data, name) {
 
 @app.route("/")
 def index():
-    return render_template_string(HTML_TEMPLATE, TAROT_IMAGE_URLS=TAROT_IMAGE_URLS)
+    return render_template_string(HTML_TEMPLATE)
+
+
+@app.route("/api/tarot-urls")
+def api_tarot_urls():
+    return jsonify(TAROT_IMAGE_URLS)
 
 
 @app.route("/api/fortune", methods=["POST"])
