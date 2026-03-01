@@ -3,12 +3,7 @@ import json
 import random
 from datetime import date, datetime
 from urllib.parse import urlparse
-from workers import WorkerEntrypoint, Response
-
-try:
-    from workers import fetch
-except Exception:
-    fetch = None
+from workers import WorkerEntrypoint, Response, fetch
 
 # template_str はバンドル・サイズで問題が出ることがあるため、最小HTMLを直書き
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -168,7 +163,7 @@ async def generate_fortune_with_claude(
 
 300-500文字で鑑定文のみを出力してください。タイトルや見出しは不要です。"""
 
-    if not api_key or fetch is None:
+    if not api_key:
         fortune_text = generate_fallback_fortune(name, card, stem, category, concern)
         return {"fortune_text": fortune_text, "card": card, "stem": {"name": stem["name"], "reading": stem["reading"], "element": stem["element"]}}
 
